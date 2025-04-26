@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/shirou/gopsutil/mem"
 )
 
 type Services struct {
@@ -61,6 +63,11 @@ func startServices(config Config) {
         }
         fmt.Printf("%v\n", procs)
 	}
+    vm, err := mem.VirtualMemory()
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "error getting memory info: %s", err)
+    }
+    fmt.Println(vm.Total)
 }
 
 func main() {

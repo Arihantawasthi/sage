@@ -1,77 +1,86 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
+	"time"
 
+	"github.com/Arihantawasthi/sage.git/internal/config"
+	"github.com/Arihantawasthi/sage.git/internal/models"
 	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/process"
 )
 
-type Services struct {
-	Name    string   `json:"name"`
-	Command string   `json:"command"`
-	Args    []string `json:"args"`
-}
-
-type Config struct {
-	Services []Services `json:"services"`
-}
-
 type Process struct {
-	Name string
-	Cmd  string
+	Pid        int32
+	PName      string
+	Name       string
+	Cmd        string
+	upTime     string
+	CPUPercent float64
+	MemPrecent float32
 }
 
-type Processes struct {
-    Pid int
-    Procs []Process
-}
-
-func loadConfig() (Config, error) {
-	b, err := os.ReadFile("./config.json")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading config file: %s", err)
-	}
-	var config Config
-	json.Unmarshal(b, &config)
-
-	return config, nil
-}
-
-func startServices(config Config) {
-    var procs []Process
+func startServices(config models.Config) {
+	var procs []Process
 	for _, service := range config.Services {
 		cmd := exec.Command(service.Command, service.Args...)
-		fmt.Println(cmd)
 		err := cmd.Start()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error starting services %s: %v", service.Name, err)
 			continue
 		}
-        args := service.Args
+		args := service.Args
+		p, err := process.NewProcess(int32(cmd.Process.Pid))
 
-        proc := Process{
-            Name: service.Name,
-            Cmd: fmt.Sprintf("%s %s", service.Command, args),
-        }
+		procCreateTime, err := p.CreateTime()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error while getting create time for [%d]: %s", cmd.Process.Pid, err)
+		}
+		createTime := time.UnixMilli(procCreateTime)
+		upTime := time.Since(createTime)
 
-        procs := Processes{
-            Pid: cmd.Process.Pid,
-            Procs: append(procs, proc),
-        }
-        fmt.Printf("%v\n", procs)
+		procCPUPercent, err := p.CPUPercent()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error while getting cpu usage for [%d]: %s", cmd.Process.Pid, err)
+		}
+
+		procMemPercent, err := p.MemoryPercent()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error while getting memory usage for [%d]: %s", cmd.Process.Pid, err)
+		}
+
+		procName, err := p.Name()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error while getting name for [%d]: %s", cmd.Process.Pid, err)
+		}
+
+		proc := Process{
+			Pid:        p.Pid,
+			PName:      procName,
+			Name:       service.Name,
+			Cmd:        fmt.Sprintf("%s %s", service.Command, strings.Join(args, "")),
+			upTime:     upTime.String(),
+			CPUPercent: procCPUPercent,
+			MemPrecent: procMemPercent,
+		}
+
+		fmt.Println(proc)
+		procs = append(procs, proc)
 	}
-    vm, err := mem.VirtualMemory()
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "error getting memory info: %s", err)
-    }
-    fmt.Println(vm.Total)
+	vm, err := mem.VirtualMemory()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error getting memory info: %s", err)
+	}
+	fmt.Println(float64(vm.Total) / 1024 / 1024)
+	fmt.Println(float64(vm.Used) / 1024 / 1024)
+	fmt.Println(vm.UsedPercent)
 }
 
 func main() {
-	config, err := loadConfig()
+    config, err := config.LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading config file: %s", err)
 	}

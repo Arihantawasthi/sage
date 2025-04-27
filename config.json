@@ -1,0 +1,14 @@
+{
+    "services": [
+        {
+            "name": "dummy-server1",
+            "command": "sleep",
+            "args": ["9999"]
+        },
+        {
+            "name": "dummy-server2",
+            "command": "tail",
+            "args": ["-f", "/var/log/system.log"]
+        }
+    ]
+}

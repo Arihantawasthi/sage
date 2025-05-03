@@ -7,5 +7,5 @@ type Services struct {
 }
 
 type Config struct {
-    Services []Services `json:"success"`
+    Services []Services `json:"services"`
 }

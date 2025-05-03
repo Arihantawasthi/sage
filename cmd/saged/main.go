@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
+
+	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/process"
 
 	"github.com/Arihantawasthi/sage.git/internal/config"
 	"github.com/Arihantawasthi/sage.git/internal/models"
-	"github.com/shirou/gopsutil/mem"
-	"github.com/shirou/gopsutil/process"
+	"github.com/Arihantawasthi/sage.git/internal/spmp"
 )
 
 type Process struct {
@@ -84,5 +89,16 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading config file: %s", err)
 	}
-	startServices(config)
+
+    ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+    defer cancel()
+
+    spmpServer := spmp.NewSPMPServer(config)
+    go func(ctx context.Context) {
+        spmpServer.ListenAndServe(ctx)
+    }(ctx)
+
+    <-ctx.Done()
+    fmt.Println("Exiting...")
+	// startServices(config)
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func LoadConfig() (models.Config, error) {
-    path := "../config.json"
+    path := "./config.json"
 	b, err := os.ReadFile(path)
 	if err != nil {
         return models.Config{}, fmt.Errorf("error reading config file '%s': %w", path, err)

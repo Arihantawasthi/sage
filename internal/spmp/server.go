@@ -53,10 +53,10 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	message := string(buf[:n])
-	fmt.Println("Received: ", message)
+	message := buf[:n]
+	fmt.Println("Received: ", string(message))
 
-	_, err = conn.Write([]byte("Echo: " + message))
+	_, err = conn.Write(message)
 	if err != nil {
 		fmt.Printf("error writing to the connection: %v\n", err)
 		return

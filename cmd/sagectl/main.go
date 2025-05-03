@@ -35,5 +35,9 @@ func main() {
         fmt.Fprintf(os.Stderr, "error while fetching info: %s", err)
     }
 
-    fmt.Println(data)
+    decodedPkt, err := spmp.DecodePacket(data)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "error while decoding the received bytes: %s", err)
+    }
+    fmt.Println(decodedPkt)
 }

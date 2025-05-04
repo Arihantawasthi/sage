@@ -93,7 +93,15 @@ func main() {
     ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
     defer cancel()
 
-    spmpServer := spmp.NewSPMPServer(config)
+    cmdMux := spmp.NewCommandMux()
+    cmdMux.HandleCommand(spmp.TypeList, func(r *spmp.SPMPRequest, w spmp.SPMPWriter) error {
+        fmt.Println("HELLO")
+        fmt.Println(r.Packet)
+        w.Write(spmp.JSONEncoding, spmp.TypeList, []byte("HELLO"))
+        return nil
+    })
+
+    spmpServer := spmp.NewSPMPServer(config, cmdMux)
     go func(ctx context.Context) {
         spmpServer.ListenAndServe(ctx)
     }(ctx)

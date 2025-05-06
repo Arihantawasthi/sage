@@ -1,9 +1,7 @@
 package spmp
 
 import (
-	"encoding/binary"
 	"fmt"
-	"io"
 	"net"
 )
 
@@ -12,28 +10,28 @@ type connWriter struct {
 }
 
 type SPMPWriter interface {
-    Write(en string, msgType byte, payload []byte) error
+	Write(en string, msgType byte, payload []byte) error
 }
 
 func NewSPMPWriter(conn net.Conn) *connWriter {
-    return &connWriter{
-        Conn: conn,
-    }
+	return &connWriter{
+		Conn: conn,
+	}
 }
 
 func (w *connWriter) Write(en string, msgType byte, payload []byte) error {
-    rspPkt, err := NewPacket(V1, en, msgType, payload)
-    if err != nil {
-        return err
-    }
+	rspPkt, err := NewPacket(V1, en, msgType, payload)
+	if err != nil {
+		return err
+	}
 
-    data, err := rspPkt.Encode()
-    if err != nil {
-        return err
-    }
+	data, err := rspPkt.Encode()
+	if err != nil {
+		return err
+	}
 
-    _, err = w.Conn.Write(data)
-    return err
+	_, err = w.Conn.Write(data)
+	return err
 }
 
 type SPMPRequest struct {
@@ -42,27 +40,15 @@ type SPMPRequest struct {
 }
 
 func NewSPMPRequest(conn net.Conn) (*SPMPRequest, error) {
-    headerBuf := make([]byte, HeaderSize)
-    if _, err := io.ReadFull(conn, headerBuf); err != nil {
-        return nil, fmt.Errorf("failed to read header: %w", err)
-    }
+	pkt, err := DecodePacket(conn)
+	if err != nil {
+		return nil, fmt.Errorf("decoding failed: %w", err)
+	}
 
-    payloadSize := binary.BigEndian.Uint32(headerBuf[6:10])
-    payloadBuf := make([]byte, payloadSize)
-    if _, err := io.ReadFull(conn, payloadBuf); err != nil {
-        return nil, fmt.Errorf("failed to read payload size: %w", err)
-    }
-
-    fullPacket := append(headerBuf, payloadBuf...)
-    pkt, err := DecodePacket(fullPacket)
-    if err != nil {
-        return nil, fmt.Errorf("decoding failed: %w", err)
-    }
-
-    return &SPMPRequest{
-        Conn: conn,
-        Packet: pkt,
-    }, nil
+	return &SPMPRequest{
+		Conn:   conn,
+		Packet: pkt,
+	}, nil
 }
 
 type HandlerFunc func(*SPMPRequest, SPMPWriter) error
@@ -84,16 +70,16 @@ func (m *CommandMux) HandleCommand(cmdType byte, handler HandlerFunc) {
 func (m *CommandMux) Serve(conn net.Conn) {
 	defer conn.Close()
 
-    req, err := NewSPMPRequest(conn)
-    if err != nil {
-        fmt.Printf("error creating request: %s", err)
-    }
-    handler, ok := m.handlers[req.Packet.Type]
-    if !ok {
-        fmt.Printf("no handler for command type: %v\n", req.Packet.Type)
-        return
-    }
+	req, err := NewSPMPRequest(conn)
+	if err != nil {
+		fmt.Printf("error creating request: %s", err)
+	}
+	handler, ok := m.handlers[req.Packet.Type]
+	if !ok {
+		fmt.Printf("no handler for command type: %v\n", req.Packet.Type)
+		return
+	}
 
-    writer := &connWriter{Conn: conn}
-    handler(req, writer)
+	writer := &connWriter{Conn: conn}
+	handler(req, writer)
 }

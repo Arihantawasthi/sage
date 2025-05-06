@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
+	"net"
 )
 
 const (
@@ -28,6 +30,11 @@ type Packet struct {
 	Type        byte
 	PayloadSize uint32
 	Payload     []byte
+}
+
+type Payload struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
 }
 
 func NewPacket(v byte, en string, msgType byte, payload []byte) (*Packet, error) {
@@ -76,12 +83,21 @@ func (p *Packet) Encode() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func DecodePacket(data []byte) (*Packet, error) {
+func DecodePacket(conn net.Conn) (*Packet, error) {
+	headerBuf := make([]byte, HeaderSize)
+	if _, err := io.ReadFull(conn, headerBuf); err != nil {
+		return nil, fmt.Errorf("failed to read header: %w", err)
+	}
+
+	payloadSize := binary.BigEndian.Uint32(headerBuf[6:10])
+	payloadBuf := make([]byte, payloadSize)
+	if _, err := io.ReadFull(conn, payloadBuf); err != nil {
+		return nil, fmt.Errorf("failed to read payload size: %w", err)
+	}
+
+	data := append(headerBuf, payloadBuf...)
 	reader := bytes.NewReader(data)
 	pkt := Packet{}
-
-	packetSize := data[HeaderSize+1:HeaderSize+5]
-	fmt.Println(packetSize, len(data), pkt)
 
 	if err := binary.Read(reader, binary.BigEndian, &pkt.MagicBytes); err != nil {
 		return nil, fmt.Errorf("failed to read magic bytes: %w", err)

@@ -15,23 +15,25 @@ func NewSPMPClient() *SPMPClient {
 	}
 }
 
-func (c *SPMPClient) SendPacket(pkt []byte) ([]byte, error) {
+func (c *SPMPClient) SendPacket(pkt *Packet) (*Packet, error) {
 	conn, err := net.Dial("unix", c.socketPath)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to unix socket: %w", err)
 	}
 	defer conn.Close()
+    packetBytes, err := pkt.Encode()
+    if err != nil {
+        return nil, fmt.Errorf("error while ecoding packet: %s", err)
+    }
 
-	_, err = conn.Write(pkt)
+	_, err = conn.Write(packetBytes)
 	if err != nil {
 		return nil, fmt.Errorf("error writing to the connection: %v\n", err)
 	}
 
-	buffer := make([]byte, 1024)
-	n, err := conn.Read(buffer)
-	if err != nil {
-		return nil, fmt.Errorf("error reading from the connection: %v\n", err)
-	}
-    fmt.Println(len(buffer))
-	return buffer[:n], nil
+    decodedPkt, err := DecodePacket(conn)
+    if err != nil {
+        return nil, fmt.Errorf("error while decoding the received bytes: %s", err)
+    }
+    return decodedPkt, nil
 }

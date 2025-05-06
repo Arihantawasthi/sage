@@ -13,6 +13,7 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/process"
 
+	"github.com/Arihantawasthi/sage.git/cmd/saged/handlers"
 	"github.com/Arihantawasthi/sage.git/internal/config"
 	"github.com/Arihantawasthi/sage.git/internal/models"
 	"github.com/Arihantawasthi/sage.git/internal/spmp"
@@ -88,18 +89,14 @@ func main() {
     config, err := config.LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading config file: %s", err)
+        os.Exit(1)
 	}
 
     ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
     defer cancel()
 
     cmdMux := spmp.NewCommandMux()
-    cmdMux.HandleCommand(spmp.TypeList, func(r *spmp.SPMPRequest, w spmp.SPMPWriter) error {
-        fmt.Println("HELLO")
-        fmt.Println(r.Packet)
-        w.Write(spmp.JSONEncoding, spmp.TypeList, []byte("HELLO"))
-        return nil
-    })
+    cmdMux.HandleCommand(spmp.TypeList, handlers.GetListOfServices)
 
     spmpServer := spmp.NewSPMPServer(config, cmdMux)
     go func(ctx context.Context) {

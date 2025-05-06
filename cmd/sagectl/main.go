@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -25,19 +26,13 @@ func main() {
         fmt.Fprintf(os.Stderr, "error while creating packet: %s", err)
     }
 
-    packetBytes, err := packet.Encode()
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "error while encoding packet: %s", err)
-    }
 
-    data, err := client.SendPacket(packetBytes)
+    receivedPkt, err := client.SendPacket(packet)
     if err != nil {
         fmt.Fprintf(os.Stderr, "error while fetching info: %s", err)
     }
 
-    decodedPkt, err := spmp.DecodePacket(data)
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "error while decoding the received bytes: %s", err)
-    }
-    fmt.Println(decodedPkt)
+    var payload spmp.Payload
+    json.Unmarshal(receivedPkt.Payload, &payload)
+    fmt.Println(payload)
 }

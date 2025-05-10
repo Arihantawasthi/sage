@@ -1,13 +1,17 @@
 package models
 
-type Services struct {
+type Service struct {
 	Name    string   `json:"name"`
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
 }
 
+type Services struct {
+	Services []Service `json:"services"`
+}
+
 type Config struct {
-	Services []Services `json:"services"`
+	ServiceMap map[string]Service `json:"serviceMap"`
 }
 
 type Response[T any] struct {
@@ -24,4 +28,5 @@ type Process struct {
 	UpTime     string
 	CPUPercent float64
 	MemPrecent float32
+	StopChan   chan struct{}
 }

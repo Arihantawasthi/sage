@@ -9,17 +9,24 @@ import (
 )
 
 func LoadConfig() (models.Config, error) {
-    path := "./config.json"
+	path := "./config.json"
 	b, err := os.ReadFile(path)
 	if err != nil {
-        return models.Config{}, fmt.Errorf("error reading config file '%s': %w", path, err)
+		return models.Config{}, fmt.Errorf("error reading config file '%s': %w", path, err)
 	}
 
-	var config models.Config
-    err = json.Unmarshal(b, &config)
-    if err != nil {
-        return models.Config{}, fmt.Errorf("error unmarshalling config file '%s': %w", path, err)
+	var services models.Services
+	err = json.Unmarshal(b, &services)
+	if err != nil {
+		return models.Config{}, fmt.Errorf("error unmarshalling config file '%s': %w", path, err)
+	}
+
+    m := make(map[string]models.Service)
+    for _, svc := range services.Services {
+        m[svc.Name] = svc
     }
 
-	return config, nil
+	return models.Config{
+        ServiceMap: m,
+    }, nil
 }

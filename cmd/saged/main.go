@@ -15,7 +15,7 @@ import (
 func main() {
 	config, err := config.LoadConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading config file: %s", err)
+		fmt.Fprintf(os.Stderr, "error reading config file: %s\n", err)
 		os.Exit(1)
 	}
 

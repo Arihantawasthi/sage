@@ -11,19 +11,19 @@ import (
 
 	"github.com/Arihantawasthi/sage.git/internal/models"
 	"github.com/Arihantawasthi/sage.git/internal/spmp"
-	"github.com/shirou/gopsutil/mem"
-	"github.com/shirou/gopsutil/process"
+	mem "github.com/shirou/gopsutil/mem"
+	ps "github.com/shirou/gopsutil/process"
 )
 
 type ProcessManager struct {
-    Processes map[string]models.Process
+    ProcessMap map[string]*models.Process
     Mutex sync.Mutex
     Cfg models.Config
 }
 
 func NewProcessManager(cfg models.Config) *ProcessManager{
     return &ProcessManager{
-        Processes: make(map[string]models.Process),
+        ProcessMap: make(map[string]*models.Process),
         Cfg: cfg,
     }
 }
@@ -44,7 +44,7 @@ func GetListOfServices(r *spmp.SPMPRequest, w spmp.SPMPWriter, cfg models.Config
 }
 
 func HandleStartService(r *spmp.SPMPRequest, w spmp.SPMPWriter, cfg models.Config) error {
-	if string(r.Packet.Encoding[:]) == spmp.TEXTEncoding {
+	if string(r.Packet.Encoding[:]) != spmp.TEXTEncoding {
 		resp := models.Response[uint8]{
 			RequestStatus: 0,
 			Msg:           "Execution failed, expected encoding is TEXT",
@@ -61,18 +61,125 @@ func HandleStartService(r *spmp.SPMPRequest, w spmp.SPMPWriter, cfg models.Confi
     serviceName := string(r.Packet.Payload)
 
     serviceManager := NewProcessManager(cfg)
-    if serviceName == "all" {
-        serviceManager.StartServices()
+    resp, err := serviceManager.StartService(serviceName)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "error while starting service: %s\n", err)
     }
 
-    go func() {
-    }()
-	return nil
+    respByte, err := json.Marshal(resp)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "error marshalling the reponse from StartService: %s\n", err)
+    }
+    w.Write(spmp.JSONEncoding, spmp.TypeStart, respByte)
+    return nil
 }
 
-func (p *ProcessManager) StartServices() {
+func (p *ProcessManager) StartService(name string) (models.Response[string], error) {
+    _, exists := p.ProcessMap[name]
+    if exists {
+       return models.Response[string]{
+            RequestStatus: 0,
+            Msg: "Service already running",
+            Data: "",
+        }, nil
+    }
+
+    service, exists := p.Cfg.ServiceMap[name]
+    if !exists {
+        return models.Response[string]{}, fmt.Errorf("No services found with this name in the configuration")
+    }
+
+    cmd := exec.Command(service.Command, service.Args...)
+    err := cmd.Start()
+    if err != nil {
+        return models.Response[string]{}, fmt.Errorf("failed to start service: %v", err)
+    }
+
+    pid := int32(cmd.Process.Pid)
+    proc := &models.Process{
+        Pid: pid,
+        PName: name,
+        Name: name,
+        Cmd: service.Command,
+        StopChan: make(chan struct{}),
+    }
+
+    p.Mutex.Lock()
+    p.ProcessMap[service.Name] = proc
+    p.Mutex.Unlock()
+
+    go func() {
+        ticker := time.NewTicker(5 * time.Second)
+        defer ticker.Stop()
+
+        procHandle, err := ps.NewProcess(pid)
+        if err != nil {
+            fmt.Printf("Could not get process handle for PID %d: %v", pid, err)
+            return
+        }
+
+        waitCh := make(chan error, 1)
+        go func() {
+            waitCh <- cmd.Wait()
+        }()
+
+        for {
+            select {
+            case <-proc.StopChan:
+                fmt.Printf("Stop signal received for the service: %s", name)
+                _ = procHandle.Kill()
+                return
+
+            case err := <-waitCh:
+                if err != nil {
+                    if exitErr, ok := err.(*exec.ExitError); ok {
+                        fmt.Printf("Process [%s] exited with status: %d\n", name, exitErr.ExitCode())
+                    } else {
+                        fmt.Printf("Process [%s] exited with error: %s\n", name, err)
+                    }
+                } else {
+                    fmt.Printf("Process [%s] exited normally\n", name)
+                }
+
+                p.Mutex.Lock()
+                delete(p.ProcessMap, name)
+                p.Mutex.Unlock()
+
+                fmt.Printf("Cleaned up process state: %s\n", name)
+                return
+
+            case <-ticker.C:
+                cpuPercent, cpuErr := procHandle.CPUPercent()
+                memPercent, memErr := procHandle.MemoryPercent()
+                createTime, timeErr := procHandle.CreateTime()
+
+                if cpuErr == nil {
+                    proc.CPUPercent = cpuPercent
+                }
+                if memErr == nil {
+                    proc.MemPrecent = memPercent
+                }
+                if timeErr == nil {
+                    up := time.Since(time.UnixMilli(createTime)).Truncate(time.Second)
+                    proc.UpTime = up.String()
+                }
+
+                fmt.Printf("[%s] CPU: %.2f%% MEM: %.2f%% UPTIME: %s\n", name, proc.CPUPercent, proc.MemPrecent, proc.UpTime)
+            }
+
+        }
+    }()
+
+    return models.Response[string]{
+        RequestStatus: 1,
+        Msg: "Service started!",
+        Data: fmt.Sprintf("PID: %d", pid),
+    }, nil
+}
+
+func (p *ProcessManager) StartServices() error {
 	var procs []models.Process
-	for _, service := range p.Cfg.Services {
+	for _, service := range p.Cfg.ServiceMap {
 		cmd := exec.Command(service.Command, service.Args...)
 		err := cmd.Start()
 		if err != nil {
@@ -80,7 +187,7 @@ func (p *ProcessManager) StartServices() {
 			continue
 		}
 		args := service.Args
-		p, err := process.NewProcess(int32(cmd.Process.Pid))
+		p, err := ps.NewProcess(int32(cmd.Process.Pid))
 
 		procCreateTime, err := p.CreateTime()
 		if err != nil {
@@ -124,4 +231,5 @@ func (p *ProcessManager) StartServices() {
 	fmt.Println(float64(vm.Total) / 1024 / 1024)
 	fmt.Println(float64(vm.Used) / 1024 / 1024)
 	fmt.Println(vm.UsedPercent)
+    return nil
 }

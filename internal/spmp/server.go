@@ -5,20 +5,16 @@ import (
 	"fmt"
 	"net"
 	"os"
-
-	"github.com/Arihantawasthi/sage.git/internal/models"
 )
 
 type SPMPServer struct {
-	config     models.Config
 	socketPath string
 	listener   net.Listener
 	mux        *CommandMux
 }
 
-func NewSPMPServer(cfg models.Config, mux *CommandMux) *SPMPServer {
+func NewSPMPServer(mux *CommandMux) *SPMPServer {
 	return &SPMPServer{
-		config:     cfg,
 		socketPath: "/tmp/sage.sock",
 		mux:        mux,
 	}

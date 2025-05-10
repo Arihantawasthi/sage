@@ -3,6 +3,8 @@ package spmp
 import (
 	"fmt"
 	"net"
+
+	"github.com/Arihantawasthi/sage.git/internal/models"
 )
 
 type connWriter struct {
@@ -51,14 +53,16 @@ func NewSPMPRequest(conn net.Conn) (*SPMPRequest, error) {
 	}, nil
 }
 
-type HandlerFunc func(*SPMPRequest, SPMPWriter) error
+type HandlerFunc func(*SPMPRequest, SPMPWriter, models.Config) error
 
 type CommandMux struct {
+	Cfg      models.Config
 	handlers map[byte]HandlerFunc
 }
 
-func NewCommandMux() *CommandMux {
+func NewCommandMux(cfg models.Config) *CommandMux {
 	return &CommandMux{
+		Cfg:      cfg,
 		handlers: make(map[byte]HandlerFunc),
 	}
 }
@@ -81,5 +85,5 @@ func (m *CommandMux) Serve(conn net.Conn) {
 	}
 
 	writer := &connWriter{Conn: conn}
-	handler(req, writer)
+	handler(req, writer, m.Cfg)
 }

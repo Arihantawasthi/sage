@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Arihantawasthi/sage.git/internal/models"
 	"github.com/Arihantawasthi/sage.git/internal/spmp"
 )
 
@@ -13,6 +14,9 @@ func main() {
     var cmdType byte
     if command == "list" {
         cmdType = spmp.TypeList
+    }
+    if command == "start" {
+        cmdType = spmp.TypeStart
     }
 
     serviceName := ""
@@ -32,7 +36,7 @@ func main() {
         fmt.Fprintf(os.Stderr, "error while fetching info: %s", err)
     }
 
-    var payload spmp.Payload
-    json.Unmarshal(receivedPkt.Payload, &payload)
-    fmt.Println(payload)
+    var response models.Response[interface{}]
+    json.Unmarshal(receivedPkt.Payload, &response)
+    fmt.Println(response)
 }

@@ -30,3 +30,5 @@ type Process struct {
 	MemPrecent float32
 	StopChan   chan struct{}
 }
+
+const LogFilePath = "/var/log/sage/saged/saged.log"

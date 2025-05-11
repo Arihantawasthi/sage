@@ -9,10 +9,17 @@ import (
 
 	"github.com/Arihantawasthi/sage.git/cmd/saged/handlers"
 	"github.com/Arihantawasthi/sage.git/internal/config"
+	"github.com/Arihantawasthi/sage.git/internal/logger"
+	"github.com/Arihantawasthi/sage.git/internal/models"
 	"github.com/Arihantawasthi/sage.git/internal/spmp"
 )
 
 func main() {
+    logger, err := logger.NewSlogLogger(models.LogFilePath)
+    if err != nil {
+		fmt.Fprintf(os.Stderr, "error while creating a logger: %s\n", err)
+		os.Exit(1)
+    }
 	config, err := config.LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading config file: %s\n", err)
@@ -23,8 +30,9 @@ func main() {
 	defer cancel()
 
 	cmdMux := spmp.NewCommandMux(config)
-	cmdMux.HandleCommand(spmp.TypeStart, handlers.HandleStartService)
-	cmdMux.HandleCommand(spmp.TypeList, handlers.GetListOfServices)
+    handler := handlers.NewHandler(config, *logger)
+	cmdMux.HandleCommand(spmp.TypeStart, handler.HandleStartService)
+	cmdMux.HandleCommand(spmp.TypeList, handler.HandleListServices)
 
 	spmpServer := spmp.NewSPMPServer(cmdMux)
 	go func(ctx context.Context) {

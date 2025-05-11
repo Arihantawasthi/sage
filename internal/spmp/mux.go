@@ -53,16 +53,15 @@ func NewSPMPRequest(conn net.Conn) (*SPMPRequest, error) {
 	}, nil
 }
 
-type HandlerFunc func(*SPMPRequest, SPMPWriter, models.Config) error
+type HandlerFunc func(*SPMPRequest, SPMPWriter) error
 
 type CommandMux struct {
 	Cfg      models.Config
 	handlers map[byte]HandlerFunc
 }
 
-func NewCommandMux(cfg models.Config) *CommandMux {
+func NewCommandMux() *CommandMux {
 	return &CommandMux{
-		Cfg:      cfg,
 		handlers: make(map[byte]HandlerFunc),
 	}
 }
@@ -85,5 +84,5 @@ func (m *CommandMux) Serve(conn net.Conn) {
 	}
 
 	writer := &connWriter{Conn: conn}
-	handler(req, writer, m.Cfg)
+	handler(req, writer)
 }

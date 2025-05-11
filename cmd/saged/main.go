@@ -29,7 +29,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	cmdMux := spmp.NewCommandMux(config)
+	cmdMux := spmp.NewCommandMux()
     handler := handlers.NewHandler(config, *logger)
 	cmdMux.HandleCommand(spmp.TypeStart, handler.HandleStartService)
 	cmdMux.HandleCommand(spmp.TypeList, handler.HandleListServices)

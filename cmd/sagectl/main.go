@@ -18,6 +18,9 @@ func main() {
     if command == "start" {
         cmdType = spmp.TypeStart
     }
+    if command == "stop" {
+        cmdType = spmp.TypeStop
+    }
 
     serviceName := ""
     if len(os.Args) > 1 {

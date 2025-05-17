@@ -12,13 +12,16 @@ import (
 type Handler struct {
 	cfg    models.Config
 	logger logger.SlogLogger
+	sm     *ProcessManager
 }
 
 func NewHandler(config models.Config, logger logger.SlogLogger) *Handler {
-    return &Handler{
-        cfg: config,
-        logger: logger,
-    }
+	serviceManager := NewProcessManager(config)
+	return &Handler{
+		cfg:    config,
+		logger: logger,
+		sm:     serviceManager,
+	}
 }
 
 func (h *Handler) HandleListServices(r *spmp.SPMPRequest, w spmp.SPMPWriter) error {
@@ -36,34 +39,71 @@ func (h *Handler) HandleListServices(r *spmp.SPMPRequest, w spmp.SPMPWriter) err
 	return nil
 }
 
-func (h *Handler) HandleStartService(r *spmp.SPMPRequest, w spmp.SPMPWriter) error {
+func (h *Handler) HandleStopService(r *spmp.SPMPRequest, w spmp.SPMPWriter) error {
 	if string(r.Packet.Encoding[:]) != spmp.TEXTEncoding {
-        h.logger.Error("Invalid packet encoding", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
-		resp := models.Response[uint8]{
+		h.logger.Error("Invalid packet encoding", "func: HandleStopService", "STOP", "", "sagectl", string(r.Packet.Encoding[:]))
+		resp := models.Response[string]{
 			RequestStatus: 0,
 			Msg:           "Execution failed, expected encoding is TEXT",
-			Data:          0,
+			Data:          "",
 		}
 		respBytes, err := json.Marshal(resp)
 		if err != nil {
-            h.logger.Error("error while marshalling response struct: ", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
-            return nil
+            errMsg := fmt.Sprintf("error while marshalling response struct: %s", err)
+			h.logger.Error(errMsg, "func: HandleStopService", "STOP", "", "sagectl", string(r.Packet.Encoding[:]))
+			return nil
 		}
 		w.Write(spmp.JSONEncoding, spmp.TypeStart, respBytes)
-        return nil
+		return nil
+	}
+
+    serviceName := string(r.Packet.Payload)
+    resp, err := h.sm.StopService(serviceName)
+    if err != nil {
+        errMsg := fmt.Sprintf("error while stopping the service: %s", err)
+        h.logger.Error(errMsg, "func: HandleStopService", "STOP", "", "sagectl", string(r.Packet.Encoding[:]))
+    }
+
+    respByte, err := json.Marshal(resp)
+    if err != nil {
+        errMsg := fmt.Sprintf("error while marshalling response struct: %s", err)
+		h.logger.Error(errMsg, "func: HandleStopService", "STOP", "", "sagectl", string(r.Packet.Encoding[:]))
+    }
+
+    w.Write(spmp.JSONEncoding, spmp.TypeStop, respByte)
+    return nil
+}
+
+func (h *Handler) HandleStartService(r *spmp.SPMPRequest, w spmp.SPMPWriter) error {
+	if string(r.Packet.Encoding[:]) != spmp.TEXTEncoding {
+		h.logger.Error("Invalid packet encoding", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
+		resp := models.Response[string]{
+			RequestStatus: 0,
+			Msg:           "Execution failed, expected encoding is TEXT",
+			Data:          "",
+        }
+		respBytes, err := json.Marshal(resp)
+		if err != nil {
+            errMsg := fmt.Sprintf("error while marshalling response struct: %s", err)
+			h.logger.Error(errMsg, "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
+			return nil
+		}
+		w.Write(spmp.JSONEncoding, spmp.TypeStart, respBytes)
+		return nil
 	}
 
 	serviceName := string(r.Packet.Payload)
 
-	serviceManager := NewProcessManager(h.cfg)
-	resp, err := serviceManager.StartService(serviceName)
+	resp, err := h.sm.StartService(serviceName)
 	if err != nil {
-        h.logger.Error("error while starting service: ", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
+        errMsg := fmt.Sprintf("error while starting service: %s", err)
+		h.logger.Error(errMsg, "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
 	}
 
 	respByte, err := json.Marshal(resp)
 	if err != nil {
-        h.logger.Error("error marshalling the repsonse: ", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
+        errMsg := fmt.Sprintf("error while marshalling response struct: %s", err)
+		h.logger.Error(errMsg, "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
 	}
 	w.Write(spmp.JSONEncoding, spmp.TypeStart, respByte)
 	return nil

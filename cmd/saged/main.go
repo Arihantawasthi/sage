@@ -33,6 +33,7 @@ func main() {
     handler := handlers.NewHandler(config, *logger)
 	cmdMux.HandleCommand(spmp.TypeStart, handler.HandleStartService)
 	cmdMux.HandleCommand(spmp.TypeList, handler.HandleListServices)
+	cmdMux.HandleCommand(spmp.TypeStop, handler.HandleStopService)
 
 	spmpServer := spmp.NewSPMPServer(cmdMux)
 	go func(ctx context.Context) {

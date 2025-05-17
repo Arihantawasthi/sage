@@ -14,119 +14,148 @@ import (
 )
 
 type ProcessManager struct {
-    ProcessMap map[string]*models.Process
-    Mutex sync.Mutex
-    Cfg models.Config
+	ProcessMap map[string]*models.Process
+	Mutex      sync.Mutex
+	Cfg        models.Config
 }
 
-func NewProcessManager(cfg models.Config) *ProcessManager{
-    return &ProcessManager{
-        ProcessMap: make(map[string]*models.Process),
-        Cfg: cfg,
-    }
+func NewProcessManager(cfg models.Config) *ProcessManager {
+	return &ProcessManager{
+		ProcessMap: make(map[string]*models.Process),
+		Cfg:        cfg,
+	}
+}
+
+func (p *ProcessManager) StopService(name string) (models.Response[string], error) {
+	_, exists := p.Cfg.ServiceMap[name]
+	if !exists {
+		return models.Response[string]{
+			RequestStatus: 0,
+			Msg:           "No services found with this name in the configuration",
+			Data:          "",
+		}, nil
+	}
+
+	runningPs, exists := p.ProcessMap[name]
+	if !exists {
+		return models.Response[string]{
+			RequestStatus: 0,
+			Msg:           "This service is not running",
+			Data:          "",
+		}, nil
+	}
+
+	close(runningPs.StopChan)
+
+	response := models.Response[string]{
+		RequestStatus: 1,
+		Msg:           "Service stopped successfully",
+		Data:          "",
+	}
+	return response, nil
 }
 
 func (p *ProcessManager) StartService(name string) (models.Response[string], error) {
-    _, exists := p.ProcessMap[name]
-    if exists {
-       return models.Response[string]{
-            RequestStatus: 0,
-            Msg: "Service already running",
-            Data: "",
-        }, nil
-    }
+	_, exists := p.ProcessMap[name]
+	if exists {
+		return models.Response[string]{
+			RequestStatus: 0,
+			Msg:           "Service already running",
+			Data:          "",
+		}, nil
+	}
 
-    service, exists := p.Cfg.ServiceMap[name]
-    if !exists {
-        return models.Response[string]{}, fmt.Errorf("No services found with this name in the configuration")
-    }
+	service, exists := p.Cfg.ServiceMap[name]
+	if !exists {
+		return models.Response[string]{}, fmt.Errorf("No services found with this name in the configuration")
+	}
 
-    cmd := exec.Command(service.Command, service.Args...)
-    err := cmd.Start()
-    if err != nil {
-        return models.Response[string]{}, fmt.Errorf("failed to start service: %v", err)
-    }
+	cmd := exec.Command(service.Command, service.Args...)
+	err := cmd.Start()
+	if err != nil {
+		return models.Response[string]{}, fmt.Errorf("failed to start service: %v", err)
+	}
 
-    pid := int32(cmd.Process.Pid)
-    proc := &models.Process{
-        Pid: pid,
-        PName: name,
-        Name: name,
-        Cmd: service.Command,
-        StopChan: make(chan struct{}),
-    }
+	pid := int32(cmd.Process.Pid)
+	proc := &models.Process{
+		Pid:      pid,
+		PName:    name,
+		Name:     name,
+		Cmd:      service.Command,
+		StopChan: make(chan struct{}),
+	}
 
-    p.Mutex.Lock()
-    p.ProcessMap[service.Name] = proc
-    p.Mutex.Unlock()
+	p.Mutex.Lock()
+	p.ProcessMap[service.Name] = proc
+	p.Mutex.Unlock()
 
-    go func() {
-        ticker := time.NewTicker(5 * time.Second)
-        defer ticker.Stop()
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
 
-        procHandle, err := ps.NewProcess(pid)
-        if err != nil {
-            fmt.Printf("Could not get process handle for PID %d: %v", pid, err)
-            return
-        }
+		procHandle, err := ps.NewProcess(pid)
+		if err != nil {
+			fmt.Printf("Could not get process handle for PID %d: %v", pid, err)
+			return
+		}
 
-        waitCh := make(chan error, 1)
-        go func() {
-            waitCh <- cmd.Wait()
-        }()
+		waitCh := make(chan error, 1)
+		go func() {
+			waitCh <- cmd.Wait()
+		}()
 
-        for {
-            select {
-            case <-proc.StopChan:
-                fmt.Printf("Stop signal received for the service: %s", name)
-                _ = procHandle.Kill()
-                return
+		for {
+			select {
+			case <-proc.StopChan:
+				fmt.Printf("Stop signal received for the service: %s", name)
+				_ = procHandle.Kill()
+				return
 
-            case err := <-waitCh:
-                if err != nil {
-                    if exitErr, ok := err.(*exec.ExitError); ok {
-                        fmt.Printf("Process [%s] exited with status: %d\n", name, exitErr.ExitCode())
-                    } else {
-                        fmt.Printf("Process [%s] exited with error: %s\n", name, err)
-                    }
-                } else {
-                    fmt.Printf("Process [%s] exited normally\n", name)
-                }
+			case err := <-waitCh:
+				if err != nil {
+					if exitErr, ok := err.(*exec.ExitError); ok {
+						fmt.Printf("Process [%s] exited with status: %d\n", name, exitErr.ExitCode())
+					} else {
+						fmt.Printf("Process [%s] exited with error: %s\n", name, err)
+					}
+				} else {
+					fmt.Printf("Process [%s] exited normally\n", name)
+				}
 
-                p.Mutex.Lock()
-                delete(p.ProcessMap, name)
-                p.Mutex.Unlock()
+				p.Mutex.Lock()
+				delete(p.ProcessMap, name)
+				p.Mutex.Unlock()
 
-                fmt.Printf("Cleaned up process state: %s\n", name)
-                return
+				fmt.Printf("Cleaned up process state: %s\n", name)
+				return
 
-            case <-ticker.C:
-                cpuPercent, cpuErr := procHandle.CPUPercent()
-                memPercent, memErr := procHandle.MemoryPercent()
-                createTime, timeErr := procHandle.CreateTime()
+			case <-ticker.C:
+				cpuPercent, cpuErr := procHandle.CPUPercent()
+				memPercent, memErr := procHandle.MemoryPercent()
+				createTime, timeErr := procHandle.CreateTime()
 
-                if cpuErr == nil {
-                    proc.CPUPercent = cpuPercent
-                }
-                if memErr == nil {
-                    proc.MemPrecent = memPercent
-                }
-                if timeErr == nil {
-                    up := time.Since(time.UnixMilli(createTime)).Truncate(time.Second)
-                    proc.UpTime = up.String()
-                }
+				if cpuErr == nil {
+					proc.CPUPercent = cpuPercent
+				}
+				if memErr == nil {
+					proc.MemPrecent = memPercent
+				}
+				if timeErr == nil {
+					up := time.Since(time.UnixMilli(createTime)).Truncate(time.Second)
+					proc.UpTime = up.String()
+				}
 
-                fmt.Printf("[%s] CPU: %.2f%% MEM: %.2f%% UPTIME: %s\n", name, proc.CPUPercent, proc.MemPrecent, proc.UpTime)
-            }
+				fmt.Printf("[%s] CPU: %.2f%% MEM: %.2f%% UPTIME: %s\n", name, proc.CPUPercent, proc.MemPrecent, proc.UpTime)
+			}
 
-        }
-    }()
+		}
+	}()
 
-    return models.Response[string]{
-        RequestStatus: 1,
-        Msg: "Service started!",
-        Data: fmt.Sprintf("PID: %d", pid),
-    }, nil
+	return models.Response[string]{
+		RequestStatus: 1,
+		Msg:           "Service started!",
+		Data:          fmt.Sprintf("PID: %d", pid),
+	}, nil
 }
 
 func (p *ProcessManager) StartServices() error {
@@ -183,5 +212,5 @@ func (p *ProcessManager) StartServices() error {
 	fmt.Println(float64(vm.Total) / 1024 / 1024)
 	fmt.Println(float64(vm.Used) / 1024 / 1024)
 	fmt.Println(vm.UsedPercent)
-    return nil
+	return nil
 }

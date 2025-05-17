@@ -14,13 +14,24 @@ type SlogLogger struct {
 	bckupNum uint8
 }
 
-func NewSlogLogger(filePath string) (*SlogLogger, error) {
+func NewSlogLogger(relativeFilePath string) (*SlogLogger, error) {
+    homeDir, err := os.UserHomeDir()
+    if err != nil {
+        return nil, err
+    }
+    sagedDir := fmt.Sprintf("%s/.sage/saged", homeDir)
+    filePath := fmt.Sprintf("%s/%s", homeDir, relativeFilePath)
+    dir := sagedDir
+    if err := os.MkdirAll(dir, 0755); err != nil {
+        return nil, err
+    }
+
 	sl := &SlogLogger{
 		filePath: filePath,
 		maxSize:  5 * 1024 * 1024, // 5MB
 		bckupNum: 0,
 	}
-	lFile, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	lFile, err := os.OpenFile(filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
 	}

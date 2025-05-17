@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/Arihantawasthi/sage.git/internal/logger"
 	"github.com/Arihantawasthi/sage.git/internal/models"
@@ -39,6 +38,7 @@ func (h *Handler) HandleListServices(r *spmp.SPMPRequest, w spmp.SPMPWriter) err
 
 func (h *Handler) HandleStartService(r *spmp.SPMPRequest, w spmp.SPMPWriter) error {
 	if string(r.Packet.Encoding[:]) != spmp.TEXTEncoding {
+        h.logger.Error("Invalid packet encoding", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
 		resp := models.Response[uint8]{
 			RequestStatus: 0,
 			Msg:           "Execution failed, expected encoding is TEXT",
@@ -46,10 +46,11 @@ func (h *Handler) HandleStartService(r *spmp.SPMPRequest, w spmp.SPMPWriter) err
 		}
 		respBytes, err := json.Marshal(resp)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s", err)
+            h.logger.Error("error while marshalling response struct: ", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
+            return nil
 		}
-		fmt.Fprintf(os.Stderr, "Error: Expected encoding, TEXT")
 		w.Write(spmp.JSONEncoding, spmp.TypeStart, respBytes)
+        return nil
 	}
 
 	serviceName := string(r.Packet.Payload)
@@ -57,12 +58,12 @@ func (h *Handler) HandleStartService(r *spmp.SPMPRequest, w spmp.SPMPWriter) err
 	serviceManager := NewProcessManager(h.cfg)
 	resp, err := serviceManager.StartService(serviceName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error while starting service: %s\n", err)
+        h.logger.Error("error while starting service: ", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
 	}
 
 	respByte, err := json.Marshal(resp)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error marshalling the reponse from StartService: %s\n", err)
+        h.logger.Error("error marshalling the repsonse: ", "func: HandleStartService", "START", "", "sagectl", string(r.Packet.Encoding[:]))
 	}
 	w.Write(spmp.JSONEncoding, spmp.TypeStart, respByte)
 	return nil

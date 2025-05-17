@@ -31,4 +31,4 @@ type Process struct {
 	StopChan   chan struct{}
 }
 
-const LogFilePath = "/var/log/sage/saged/saged.log"
+const LogFilePath = ".sage/saged/saged.log"

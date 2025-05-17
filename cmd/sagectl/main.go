@@ -38,5 +38,10 @@ func main() {
 
     var response models.Response[interface{}]
     json.Unmarshal(receivedPkt.Payload, &response)
-    fmt.Println(response)
+    if response.RequestStatus == 1 {
+        fmt.Fprintf(os.Stdout, "%s\n", response.Msg)
+        return
+    }
+    fmt.Fprintf(os.Stderr, "%s\n", response.Msg)
+    return
 }

@@ -20,6 +20,16 @@ type Response[T any] struct {
 	Data          T      `json:"data"`
 }
 
+type PListData struct {
+	Pid        int32   `json:"pid"`
+	PName      string  `json:"pname"`
+	Name       string  `json:"name"`
+	Cmd        string  `json:"cmd"`
+	UpTime     string  `json:"uptime"`
+	CPUPercent float64 `json:"cpuPercent"`
+	MemPrecent float32 `json:"memPercent"`
+}
+
 type Process struct {
 	Pid        int32
 	PName      string

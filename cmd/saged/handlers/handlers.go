@@ -25,17 +25,15 @@ func NewHandler(config models.Config, logger logger.SlogLogger) *Handler {
 }
 
 func (h *Handler) HandleListServices(r *spmp.SPMPRequest, w spmp.SPMPWriter) error {
-	payload := spmp.Payload{
-		Name: "gitbook",
-		Type: "list",
-	}
-	fmt.Println(payload)
-	payloadBytes, err := json.Marshal(payload)
-	fmt.Println(payloadBytes)
-	if err != nil {
-		return fmt.Errorf("error encoding json into bytes: %v", err)
-	}
-	w.Write(spmp.JSONEncoding, spmp.TypeStatus, payloadBytes)
+    resp, err := h.sm.ListServices()
+    respBytes, err := json.Marshal(resp)
+    if err != nil {
+        errMsg := fmt.Sprintf("error while marshalling response struct: %s", err)
+        h.logger.Error(errMsg, "func: HandleListServices", "LIST", "", "sagectl", string(r.Packet.Encoding[:]))
+        return nil
+    }
+
+    w.Write(spmp.JSONEncoding, spmp.TypeStart, respBytes)
 	return nil
 }
 

@@ -23,7 +23,7 @@ func main() {
     }
 
     serviceName := ""
-    if len(os.Args) > 1 {
+    if len(os.Args) > 2 {
         serviceName = os.Args[2]
     }
 
@@ -33,18 +33,21 @@ func main() {
         fmt.Fprintf(os.Stderr, "error while creating packet: %s", err)
     }
 
-
     receivedPkt, err := client.SendPacket(packet)
     if err != nil {
         fmt.Fprintf(os.Stderr, "error while fetching info: %s", err)
     }
 
-    var response models.Response[interface{}]
+    var response models.Response[[]models.PListData]
     json.Unmarshal(receivedPkt.Payload, &response)
-    if response.RequestStatus == 1 {
-        fmt.Fprintf(os.Stdout, "%s\n", response.Msg)
+    if response.RequestStatus == 0 {
+        fmt.Fprintf(os.Stderr, "%s\n", response.Msg)
         return
     }
-    fmt.Fprintf(os.Stderr, "%s\n", response.Msg)
+
+    fmt.Fprintf(os.Stdout, "%s\n", response.Msg)
+    for _, v := range response.Data {
+        fmt.Fprintf(os.Stdout, "%v\n", v)
+    }
     return
 }

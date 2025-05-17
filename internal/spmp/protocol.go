@@ -135,10 +135,14 @@ func DecodePacket(conn net.Conn) (*Packet, error) {
 		return nil, fmt.Errorf("payload size mismatch: declared %d, but only %d bytes were received", pkt.PayloadSize, uint32(len(data))-HeaderSize)
 	}
 
-	pkt.Payload = make([]byte, pkt.PayloadSize)
-	if _, err := reader.Read(pkt.Payload); err != nil {
-		return nil, fmt.Errorf("failed to read payload: %w", err)
-	}
+    if pkt.PayloadSize > 0 {
+        pkt.Payload = make([]byte, pkt.PayloadSize)
+        if _, err := reader.Read(pkt.Payload); err != nil {
+            return nil, fmt.Errorf("failed to read payload: %w", err)
+        }
+    } else {
+        pkt.Payload = []byte{}
+    }
 
 	return &pkt, nil
 }

@@ -27,29 +27,29 @@ func NewProcessManager(cfg models.Config) *ProcessManager {
 }
 
 func (p *ProcessManager) ListServices() (models.Response[[]models.PListData], error) {
-    var res []models.PListData
+	var res []models.PListData
 	for k, _ := range p.Cfg.ServiceMap {
-        cfgPs, exists := p.ProcessMap[k]
-        if !exists {
-            continue
-        }
-        res = append(res, models.PListData{
-            Pid: cfgPs.Pid,
-            PName: cfgPs.PName,
-            Name: cfgPs.Name,
-            Cmd: cfgPs.Cmd,
-            UpTime: cfgPs.UpTime,
-            CPUPercent: cfgPs.CPUPercent,
-            MemPrecent: cfgPs.MemPrecent,
-        })
+		cfgPs, exists := p.ProcessMap[k]
+		if !exists {
+			continue
+		}
+		res = append(res, models.PListData{
+			Pid:        cfgPs.Pid,
+			PName:      cfgPs.PName,
+			Name:       cfgPs.Name,
+			Cmd:        cfgPs.Cmd,
+			UpTime:     cfgPs.UpTime,
+			CPUPercent: cfgPs.CPUPercent,
+			MemPrecent: cfgPs.MemPrecent,
+		})
 	}
-    if len(res) == 0 {
-        return models.Response[[]models.PListData]{
-            RequestStatus: 1,
-            Msg:           "No services running",
-            Data:          res,
-        }, nil
-    }
+	if len(res) == 0 {
+		return models.Response[[]models.PListData]{
+			RequestStatus: 1,
+			Msg:           "No services running",
+			Data:          res,
+		}, nil
+	}
 
 	return models.Response[[]models.PListData]{
 		RequestStatus: 1,

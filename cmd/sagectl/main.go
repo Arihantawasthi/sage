@@ -7,6 +7,7 @@ import (
 
 	"github.com/Arihantawasthi/sage.git/internal/models"
 	"github.com/Arihantawasthi/sage.git/internal/spmp"
+	"github.com/Arihantawasthi/sage.git/internal/utils"
 )
 
 func main() {
@@ -46,8 +47,9 @@ func main() {
     }
 
     fmt.Fprintf(os.Stdout, "%s\n", response.Msg)
-    for _, v := range response.Data {
-        fmt.Fprintf(os.Stdout, "%v\n", v)
-    }
+    utils.PrintTable(response.Data)
+    //for _, v := range response.Data {
+    //    fmt.Fprintf(os.Stdout, "%v\n", v)
+    //}
     return
 }

@@ -78,6 +78,7 @@ func (p *ProcessManager) StopService(name string) (models.Response[string], erro
 	}
 
 	close(runningPs.StopChan)
+    delete(p.ProcessMap, name)
 
 	response := models.Response[string]{
 		RequestStatus: 1,

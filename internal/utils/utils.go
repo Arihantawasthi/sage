@@ -23,9 +23,9 @@ func PrintTable(data []models.PListData) {
         widths[3] = max(widths[3], len(d.Name) + padding)
         widths[4] = max(widths[4], len(d.Cmd) + padding)
         widths[5] = max(widths[5], len(d.Status) + padding)
-        widths[6] = max(widths[5], len(d.UpTime) + padding)
-        widths[7] = max(widths[6], len(fmt.Sprintf("%0.02f", d.CPUPercent)) + padding)
-        widths[8] = max(widths[7], len(fmt.Sprintf("%0.02f", d.MemPrecent)) + padding)
+        widths[6] = max(widths[6], len(d.UpTime) + padding)
+        widths[7] = max(widths[7], len(fmt.Sprintf("%0.02f", d.CPUPercent)) + padding)
+        widths[8] = max(widths[8], len(fmt.Sprintf("%0.02f", d.MemPrecent)) + padding)
     }
     printBorders(widths, headers)
 
@@ -42,13 +42,13 @@ func PrintTable(data []models.PListData) {
         fmt.Printf("| %-*s ", widths[3], d.Name)
         fmt.Printf("| %-*s ", widths[4], d.Cmd)
         if d.Status == "online" {
-            fmt.Printf("| %s ", Green(widths[5], d.Status))
+            fmt.Printf("| %s", Green(widths[5], d.Status))
         } else {
-            fmt.Printf("| %s ", Red(widths[5], d.Status))
+            fmt.Printf("| %s", Red(widths[5], d.Status))
         }
         fmt.Printf("| %-*s ", widths[6], d.UpTime)
-        fmt.Printf("| %-*.3f ", widths[6], d.CPUPercent)
-        fmt.Printf("| %-*.3f ", widths[7], d.MemPrecent)
+        fmt.Printf("| %-*.2f ", widths[7], d.CPUPercent)
+        fmt.Printf("| %-*.2f ", widths[8], d.MemPrecent)
         fmt.Println()
     }
     printBorders(widths, headers)

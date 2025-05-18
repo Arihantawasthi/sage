@@ -25,6 +25,7 @@ type PListData struct {
 	PName      string  `json:"pname"`
 	Name       string  `json:"name"`
 	Cmd        string  `json:"cmd"`
+	Status     string  `json:"status"`
 	UpTime     string  `json:"uptime"`
 	CPUPercent float64 `json:"cpuPercent"`
 	MemPrecent float32 `json:"memPercent"`

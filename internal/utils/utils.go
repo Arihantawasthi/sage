@@ -8,7 +8,7 @@ import (
 )
 
 func PrintTable(data []models.PListData) {
-    headers := []string{"SNo.", "PID", "P_NAME", "NAME", "CMD", "UP TIME", "CPU%", "MEM%"}
+    headers := []string{"SNo.", "PID", "P_NAME", "NAME", "CMD", "STATUS", "UP TIME", "CPU%", "MEM%"}
     widths := make([]int, len(headers))
 
     for i, h := range headers {
@@ -22,9 +22,10 @@ func PrintTable(data []models.PListData) {
         widths[2] = max(widths[2], len(d.PName) + padding)
         widths[3] = max(widths[3], len(d.Name) + padding)
         widths[4] = max(widths[4], len(d.Cmd) + padding)
-        widths[5] = max(widths[5], len(d.UpTime) + padding)
-        widths[6] = max(widths[6], len(fmt.Sprintf("%0.02f", d.CPUPercent)) + padding)
-        widths[7] = max(widths[7], len(fmt.Sprintf("%0.02f", d.MemPrecent)) + padding)
+        widths[5] = max(widths[5], len(d.Status) + padding)
+        widths[6] = max(widths[5], len(d.UpTime) + padding)
+        widths[7] = max(widths[6], len(fmt.Sprintf("%0.02f", d.CPUPercent)) + padding)
+        widths[8] = max(widths[7], len(fmt.Sprintf("%0.02f", d.MemPrecent)) + padding)
     }
     printBorders(widths, headers)
 
@@ -40,9 +41,14 @@ func PrintTable(data []models.PListData) {
         fmt.Printf("| %-*s ", widths[2], d.PName)
         fmt.Printf("| %-*s ", widths[3], d.Name)
         fmt.Printf("| %-*s ", widths[4], d.Cmd)
-        fmt.Printf("| %-*s ", widths[5], d.UpTime)
-        fmt.Printf("| %-*.2f ", widths[6], d.CPUPercent)
-        fmt.Printf("| %-*.2f ", widths[7], d.MemPrecent)
+        if d.Status == "online" {
+            fmt.Printf("| %s ", Green(widths[5], d.Status))
+        } else {
+            fmt.Printf("| %s ", Red(widths[5], d.Status))
+        }
+        fmt.Printf("| %-*s ", widths[6], d.UpTime)
+        fmt.Printf("| %-*.3f ", widths[6], d.CPUPercent)
+        fmt.Printf("| %-*.3f ", widths[7], d.MemPrecent)
         fmt.Println()
     }
     printBorders(widths, headers)

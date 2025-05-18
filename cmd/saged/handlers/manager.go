@@ -31,17 +31,28 @@ func (p *ProcessManager) ListServices() (models.Response[[]models.PListData], er
 	for k, _ := range p.Cfg.ServiceMap {
 		cfgPs, exists := p.ProcessMap[k]
 		if !exists {
-			continue
+			res = append(res, models.PListData{
+				Pid:        0,
+				PName:      k,
+				Name:       k,
+				Cmd:        "-",
+				Status:     "offline",
+				UpTime:     "0s",
+				CPUPercent: 0.0,
+				MemPrecent: 0.0,
+			})
+		} else {
+			res = append(res, models.PListData{
+				Pid:        cfgPs.Pid,
+				PName:      cfgPs.PName,
+				Name:       cfgPs.Name,
+				Cmd:        cfgPs.Cmd,
+				Status:     "online",
+				UpTime:     cfgPs.UpTime,
+				CPUPercent: cfgPs.CPUPercent,
+				MemPrecent: cfgPs.MemPrecent,
+			})
 		}
-		res = append(res, models.PListData{
-			Pid:        cfgPs.Pid,
-			PName:      cfgPs.PName,
-			Name:       cfgPs.Name,
-			Cmd:        cfgPs.Cmd,
-			UpTime:     cfgPs.UpTime,
-			CPUPercent: cfgPs.CPUPercent,
-			MemPrecent: cfgPs.MemPrecent,
-		})
 	}
 	if len(res) == 0 {
 		return models.Response[[]models.PListData]{
@@ -78,7 +89,7 @@ func (p *ProcessManager) StopService(name string) (models.Response[string], erro
 	}
 
 	close(runningPs.StopChan)
-    delete(p.ProcessMap, name)
+	delete(p.ProcessMap, name)
 
 	response := models.Response[string]{
 		RequestStatus: 1,

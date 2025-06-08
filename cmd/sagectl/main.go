@@ -11,32 +11,30 @@ import (
 )
 
 func main() {
-    command := os.Args[1]
-    var cmdType byte
-    if command == "list" {
-        cmdType = spmp.TypeList
-    }
-    if command == "start" {
-        cmdType = spmp.TypeStart
-    }
-    if command == "stop" {
-        cmdType = spmp.TypeStop
+    if len(os.Args) < 2 {
+        fmt.Fprintf(os.Stderr, "Usage: sagectl [list|status|start|stop] <service-name>")
+        return
     }
 
+    command := os.Args[1]
     serviceName := ""
-    if len(os.Args) > 2 {
-        serviceName = os.Args[2]
+    if len(os.Args) < 3 && command != "list" {
+        fmt.Fprintf(os.Stderr, "Service name requried.\nExample Usage: sagectl %s <service-name>\n", command)
+        return
     }
+    serviceName = os.Args[2]
 
     client := spmp.NewSPMPClient()
-    packet, err := spmp.NewPacket(spmp.V1, spmp.TEXTEncoding, cmdType, []byte(serviceName))
+    packet, err := buildPacket(command, serviceName)
     if err != nil {
-        fmt.Fprintf(os.Stderr, "error while creating packet: %s", err)
+        fmt.Fprintf(os.Stderr, "%v", err)
+        os.Exit(1)
     }
 
-    receivedPkt, err := client.SendPacket(packet)
+    receivedPkt, err := client.SendAndPacket(packet)
     if err != nil {
         fmt.Fprintf(os.Stderr, "error while fetching info: %s", err)
+        os.Exit(1)
     }
 
     var response models.Response[[]models.PListData]
@@ -51,4 +49,27 @@ func main() {
         utils.PrintTable(response.Data)
     }
     return
+}
+
+func buildPacket(cmd, serviceName string) (*spmp.Packet, error) {
+    var msgType byte
+    switch cmd{
+    case "list":
+        msgType = spmp.TypeList
+    case "start":
+        msgType = spmp.TypeStart
+    case "stop":
+        msgType = spmp.TypeStop
+    case "status":
+        msgType = spmp.TypeStatus
+    default:
+        return nil, fmt.Errorf("unkown command: %s", cmd)
+    }
+
+    packet, err := spmp.NewPacket(spmp.V1, spmp.TEXTEncoding, msgType, []byte(serviceName))
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "error while creating packet: %s\n", err)
+    }
+
+    return packet, err
 }

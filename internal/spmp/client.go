@@ -15,7 +15,7 @@ func NewSPMPClient() *SPMPClient {
 	}
 }
 
-func (c *SPMPClient) SendPacket(pkt *Packet) (*Packet, error) {
+func (c *SPMPClient) SendAndPacket(pkt *Packet) (*Packet, error) {
 	conn, err := net.Dial("unix", c.socketPath)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to unix socket: %w", err)

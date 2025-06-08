@@ -47,9 +47,8 @@ func main() {
     }
 
     fmt.Fprintf(os.Stdout, "%s\n", response.Msg)
-    utils.PrintTable(response.Data)
-    //for _, v := range response.Data {
-    //    fmt.Fprintf(os.Stdout, "%v\n", v)
-    //}
+    if len(response.Data) > 0 {
+        utils.PrintTable(response.Data)
+    }
     return
 }

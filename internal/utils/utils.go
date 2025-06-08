@@ -55,7 +55,7 @@ func PrintTable(data []models.PListData) {
 }
 
 func printBorders(widths []int, headers []string) {
-    for i, _ := range headers {
+    for i := range headers {
         for w := 0; w < widths[i]+3; w++ {
             fmt.Print("-")
         }

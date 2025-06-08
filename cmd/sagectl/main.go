@@ -37,6 +37,10 @@ func main() {
         os.Exit(1)
     }
 
+    if string(receivedPkt.Encoding[:]) == spmp.TEXTEncoding {
+        fmt.Fprintf(os.Stdout, "%s\n", receivedPkt.Payload)
+        return
+    }
     var response models.Response[[]models.PListData]
     json.Unmarshal(receivedPkt.Payload, &response)
     if response.RequestStatus == 0 {

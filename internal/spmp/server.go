@@ -42,7 +42,6 @@ func (s *SPMPServer) Start() error {
             continue
         }
         go s.handleConnection(conn)
-
     }
 }
 

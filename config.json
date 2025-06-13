@@ -27,6 +27,13 @@
                 "DB_PORT": "5432",
                 "REPO_DIR": "/Users/cyberspace/Documents/projects/gitbook-repos"
             }
+        },
+        {
+            "name": "gitbook-client",
+            "command": "npm",
+            "args": ["run", "dev"],
+            "workingDir": "/Users/cyberspace/Documents/projects/gitbook-client/",
+            "env": {}
         }
     ]
 }

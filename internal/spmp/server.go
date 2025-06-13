@@ -74,7 +74,6 @@ func (s *SPMPServer) handleConnection(conn net.Conn) {
 		s.logger.Error("Handler failed", "func: handleConnection", "handler", remoteAddr, "", err)
 		return
 	}
-    fmt.Println(responsePayload)
 
 	responsePkt, err := NewPacket(V1, encoding, packet.Type, responsePayload)
 	if err != nil {

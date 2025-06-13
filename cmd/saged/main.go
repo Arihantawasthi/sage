@@ -22,7 +22,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error reading config file: %s\n", err)
 		os.Exit(1)
 	}
-    fmt.Println(logger, config)
 
     processStore := manager.NewProcessStore(config)
     spmpServer := spmp.NewSPMPServer(config, logger, processStore)

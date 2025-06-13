@@ -1,9 +1,7 @@
 package manager
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"sync"
@@ -56,7 +54,6 @@ func (ps *ProcessStore) StartProcess(serviceName string) string {
 	}
 
 	pid := cmd.Process.Pid
-	fmt.Println("Process ID: ", pid)
 
 	ps.mu.Lock()
 	stopChan := make(chan struct{})
@@ -70,7 +67,6 @@ func (ps *ProcessStore) StartProcess(serviceName string) string {
 	ps.mu.Unlock()
 
 	go ps.monitorProcess(serviceName, pid, stopChan)
-
 	go func() {
 		err := cmd.Wait()
 		delete(ps.store, serviceName)
@@ -138,7 +134,6 @@ func (ps *ProcessStore) monitorProcess(serviceName string, pid int, stopChan cha
 		fmt.Errorf("failed to create process monitor for PID %d: %v", pid, err)
 		return
 	}
-    fmt.Println("PROC CREATED")
 
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -171,7 +166,6 @@ func (ps *ProcessStore) monitorProcess(serviceName string, pid int, stopChan cha
 				storedProc.UpTime = uptime
 			}
 			ps.mu.Unlock()
-			fmt.Println("Process: ", proc.Pid, cpuPercent, memPercent, uptime)
 
 		case <-stopChan:
 			proc.Kill()

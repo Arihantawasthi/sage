@@ -25,6 +25,7 @@ func NewSPMPServer(cfg models.Config, logger *logger.SlogLogger, processStore *m
 	}
 	s.router[TypeStart] = s.handleStart
 	s.router[TypeList] = s.handleStart
+    s.router[TypeStop] = s.handleStop
 
 	return s
 }
@@ -98,7 +99,17 @@ func (s *SPMPServer) handleStart(pkt *Packet) ([]byte, error) {
 		e := fmt.Sprintf("'%s': service name doesn't exist", serviceName)
 		return []byte(e), nil
 	}
-    s.ps.StartProcess(serviceName)
-	fmt.Println("HERE IT IS")
-	return []byte("HELLO"), nil
+	message := s.ps.StartProcess(serviceName)
+	return []byte(message), nil
+}
+
+func (s *SPMPServer) handleStop(pkt *Packet) ([]byte, error) {
+	serviceName := string(pkt.Payload)
+	_, exists := s.cfg.ServiceMap[serviceName]
+	if !exists {
+		e := fmt.Sprintf("'%s': service name doesn't exist", serviceName)
+		return []byte(e), nil
+	}
+	message := s.ps.StopProcess(serviceName)
+	return []byte(message), nil
 }

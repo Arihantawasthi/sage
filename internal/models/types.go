@@ -32,7 +32,7 @@ type PListData struct {
 }
 
 type Process struct {
-	Pid        int32
+	Pid        int
 	PName      string
 	Name       string
 	Cmd        string

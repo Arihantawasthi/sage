@@ -37,7 +37,7 @@ func (ps *ProcessStore) StartProcess(serviceName string) string {
 	fmt.Println("Process ID: ", pid)
 
 	ps.mu.Lock()
-    stopChan := make(chan struct{})
+	stopChan := make(chan struct{})
 	ps.store[serviceName] = &models.Process{
 		Pid:      pid,
 		Name:     serviceName,
@@ -49,55 +49,65 @@ func (ps *ProcessStore) StartProcess(serviceName string) string {
 
 	go ps.monitorProcess(serviceName, pid, stopChan)
 
-    go func() {
-        err := cmd.Wait()
-        delete(ps.store, serviceName)
-        if err != nil {
-            fmt.Printf("process %s (PID %d) exited with error: %v\n", serviceName, pid, err)
-        } else {
+	go func() {
+		err := cmd.Wait()
+		delete(ps.store, serviceName)
+		if err != nil {
+			fmt.Printf("process %s (PID %d) exited with error: %v\n", serviceName, pid, err)
+		} else {
 			fmt.Printf("process %s (PID %d) exited normally\n", serviceName, pid)
 		}
-    }()
+	}()
 
 	message := fmt.Sprintf("Service '%s' started successfully with PID %d", serviceName, pid)
 	return message
 }
 
 func (ps *ProcessStore) StopProcess(serviceName string) string {
-    ps.mu.Lock()
-    defer ps.mu.Unlock()
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
 	runningProcess, exists := ps.store[serviceName]
 	if !exists {
 		e := fmt.Errorf("Service %s is not running", serviceName)
 		return e.Error()
 	}
 	close(runningProcess.StopChan)
-    delete(ps.store, serviceName)
+	delete(ps.store, serviceName)
 
 	message := fmt.Sprintf("Service '%s' stopped successfully", serviceName)
 	return message
 }
 
 func (ps *ProcessStore) ListProcesses(payload string) []models.PListData {
-    ps.mu.Lock()
-    defer ps.mu.Unlock()
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
 
-    var plist []models.PListData
-    for _, v := range ps.store {
-        response := models.PListData{
-            Pid: v.Pid,
-            PName: v.PName,
-            Name: v.Name,
-            Cmd: v.Cmd,
-            Status: "online",
-            UpTime: v.UpTime,
-            CPUPercent: v.CPUPercent,
-            MemPrecent: v.MemPrecent,
-        }
-        plist = append(plist, response)
-    }
+	var plist []models.PListData
+    for name, service := range ps.cfg.ServiceMap {
+		rp, exists := ps.store[name]
+		data := models.PListData{
+			Pid:        0,
+			PName:      service.Name,
+			Name:       service.Name,
+			Cmd:        service.Command,
+			Status:     "offline",
+			UpTime:     "0s",
+			CPUPercent: 0.00,
+			MemPrecent: 0.00,
+		}
 
-    return plist
+		if exists && rp != nil {
+			data.Pid = rp.Pid
+			data.Status = "online"
+			data.UpTime = rp.UpTime
+			data.CPUPercent = rp.CPUPercent
+			data.MemPrecent = rp.MemPrecent
+		}
+
+		plist = append(plist, data)
+	}
+
+	return plist
 }
 
 func (ps *ProcessStore) monitorProcess(serviceName string, pid int, stopChan chan struct{}) {
@@ -138,10 +148,10 @@ func (ps *ProcessStore) monitorProcess(serviceName string, pid int, stopChan cha
 				storedProc.UpTime = uptime
 			}
 			ps.mu.Unlock()
-            fmt.Println("Process: ", proc.Pid, cpuPercent, memPercent, uptime)
+			fmt.Println("Process: ", proc.Pid, cpuPercent, memPercent, uptime)
 
 		case <-stopChan:
-            proc.Kill()
+			proc.Kill()
 			return
 		}
 	}

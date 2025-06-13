@@ -21,7 +21,7 @@ type Response[T any] struct {
 }
 
 type PListData struct {
-	Pid        int32   `json:"pid"`
+	Pid        int     `json:"pid"`
 	PName      string  `json:"pname"`
 	Name       string  `json:"name"`
 	Cmd        string  `json:"cmd"`

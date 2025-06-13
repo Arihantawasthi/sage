@@ -74,8 +74,30 @@ func (ps *ProcessStore) StopProcess(serviceName string) string {
 	close(runningProcess.StopChan)
     delete(ps.store, serviceName)
 
-	message := fmt.Sprintf("service '%s' stopped successfully", serviceName)
+	message := fmt.Sprintf("Service '%s' stopped successfully", serviceName)
 	return message
+}
+
+func (ps *ProcessStore) ListProcesses(payload string) []models.PListData {
+    ps.mu.Lock()
+    defer ps.mu.Unlock()
+
+    var plist []models.PListData
+    for _, v := range ps.store {
+        response := models.PListData{
+            Pid: v.Pid,
+            PName: v.PName,
+            Name: v.Name,
+            Cmd: v.Cmd,
+            Status: "online",
+            UpTime: v.UpTime,
+            CPUPercent: v.CPUPercent,
+            MemPrecent: v.MemPrecent,
+        }
+        plist = append(plist, response)
+    }
+
+    return plist
 }
 
 func (ps *ProcessStore) monitorProcess(serviceName string, pid int, stopChan chan struct{}) {
@@ -116,6 +138,7 @@ func (ps *ProcessStore) monitorProcess(serviceName string, pid int, stopChan cha
 				storedProc.UpTime = uptime
 			}
 			ps.mu.Unlock()
+            fmt.Println("Process: ", proc.Pid, cpuPercent, memPercent, uptime)
 
 		case <-stopChan:
             proc.Kill()

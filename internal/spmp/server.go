@@ -1,6 +1,7 @@
 package spmp
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 
@@ -12,7 +13,7 @@ import (
 type SPMPServer struct {
 	cfg    models.Config
 	logger *logger.SlogLogger
-	router map[byte]func(*Packet) ([]byte, error)
+	router map[byte]func(*Packet) ([]byte, string, error)
 	ps     *manager.ProcessStore
 }
 
@@ -20,12 +21,12 @@ func NewSPMPServer(cfg models.Config, logger *logger.SlogLogger, processStore *m
 	s := &SPMPServer{
 		cfg:    cfg,
 		logger: logger,
-		router: make(map[byte]func(*Packet) ([]byte, error)),
+		router: make(map[byte]func(*Packet) ([]byte, string, error)),
 		ps:     processStore,
 	}
 	s.router[TypeStart] = s.handleStart
-	s.router[TypeList] = s.handleStart
-    s.router[TypeStop] = s.handleStop
+	s.router[TypeList] = s.handleList
+	s.router[TypeStop] = s.handleStop
 
 	return s
 }
@@ -68,13 +69,14 @@ func (s *SPMPServer) handleConnection(conn net.Conn) {
 		return
 	}
 
-	responsePayload, err := handler(packet)
+	responsePayload, encoding, err := handler(packet)
 	if err != nil {
 		s.logger.Error("Handler failed", "func: handleConnection", "handler", remoteAddr, "", err)
 		return
 	}
+    fmt.Println(responsePayload)
 
-	responsePkt, err := NewPacket(V1, TEXTEncoding, packet.Type, responsePayload)
+	responsePkt, err := NewPacket(V1, encoding, packet.Type, responsePayload)
 	if err != nil {
 		s.logger.Error("failed to build response packet", "func: handleConnection", "NewPacket", remoteAddr, "", err)
 		return
@@ -92,24 +94,41 @@ func (s *SPMPServer) handleConnection(conn net.Conn) {
 	}
 }
 
-func (s *SPMPServer) handleStart(pkt *Packet) ([]byte, error) {
+func (s *SPMPServer) handleStart(pkt *Packet) ([]byte, string, error) {
 	serviceName := string(pkt.Payload)
 	_, exists := s.cfg.ServiceMap[serviceName]
 	if !exists {
 		e := fmt.Sprintf("'%s': service name doesn't exist", serviceName)
-		return []byte(e), nil
+		return []byte(e), TEXTEncoding, nil
 	}
 	message := s.ps.StartProcess(serviceName)
-	return []byte(message), nil
+	return []byte(message), TEXTEncoding, nil
 }
 
-func (s *SPMPServer) handleStop(pkt *Packet) ([]byte, error) {
+func (s *SPMPServer) handleStop(pkt *Packet) ([]byte, string, error) {
 	serviceName := string(pkt.Payload)
 	_, exists := s.cfg.ServiceMap[serviceName]
 	if !exists {
 		e := fmt.Sprintf("'%s': service name doesn't exist", serviceName)
-		return []byte(e), nil
+		return []byte(e), TEXTEncoding, nil
 	}
 	message := s.ps.StopProcess(serviceName)
-	return []byte(message), nil
+	return []byte(message), TEXTEncoding, nil
+}
+
+func (s *SPMPServer) handleList(pkt *Packet) ([]byte, string, error) {
+	payload := string(pkt.Payload)
+	plistData := s.ps.ListProcesses(payload)
+    data := models.Response[[]models.PListData]{
+        RequestStatus: 1,
+        Msg: "Service list retrieved successfully",
+        Data: plistData,
+    }
+    response, err := json.Marshal(data)
+	if err != nil {
+		e := fmt.Errorf("error in encoding json: %v", err)
+		return []byte(e.Error()), TEXTEncoding, nil
+	}
+
+	return response, JSONEncoding, nil
 }

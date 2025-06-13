@@ -1,12 +1,16 @@
 package manager
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"sync"
 	"time"
 
 	"github.com/Arihantawasthi/sage.git/internal/models"
+	"github.com/Arihantawasthi/sage.git/internal/utils"
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -25,9 +29,27 @@ func NewProcessStore(config models.Config) *ProcessStore {
 
 func (ps *ProcessStore) StartProcess(serviceName string) string {
 	service := ps.cfg.ServiceMap[serviceName]
-	fmt.Println(service.Command, service.Args)
 	cmd := exec.Command(service.Command, service.Args...)
-	err := cmd.Start()
+    cmd.Env = os.Environ()
+    cmd.Dir = service.WorkingDir
+    for k, v := range ps.cfg.ServiceMap[serviceName].Env {
+        envVar := fmt.Sprintf("%s=%s", k, v)
+        cmd.Env = append(cmd.Env, envVar)
+    }
+
+    stdout, err := cmd.StdoutPipe()
+    if err != nil {
+        return fmt.Sprintf("failed to get stdout pipe: %v", err)
+    }
+    stderr, err := cmd.StderrPipe()
+    if err != nil {
+        return fmt.Sprintf("failed to get stderr pipe: %v", err)
+    }
+
+    go utils.StreamLogs(stdout, fmt.Sprintf("[stdout][%s]", serviceName))
+    go utils.StreamLogs(stderr, fmt.Sprintf("[stderr][%s]", serviceName))
+
+	err = cmd.Start()
 	if err != nil {
 		e := fmt.Errorf("error starting the process: %v\n", err)
 		return e.Error()
@@ -83,7 +105,7 @@ func (ps *ProcessStore) ListProcesses(payload string) []models.PListData {
 	defer ps.mu.Unlock()
 
 	var plist []models.PListData
-    for name, service := range ps.cfg.ServiceMap {
+	for name, service := range ps.cfg.ServiceMap {
 		rp, exists := ps.store[name]
 		data := models.PListData{
 			Pid:        0,
@@ -116,6 +138,7 @@ func (ps *ProcessStore) monitorProcess(serviceName string, pid int, stopChan cha
 		fmt.Errorf("failed to create process monitor for PID %d: %v", pid, err)
 		return
 	}
+    fmt.Println("PROC CREATED")
 
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()

@@ -1,11 +1,23 @@
 package utils
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/Arihantawasthi/sage.git/internal/models"
 )
+
+func StreamLogs(pipe io.ReadCloser, prefix string) {
+    scanner := bufio.NewScanner(pipe)
+    for scanner.Scan() {
+        fmt.Println(prefix, scanner.Text())
+    }
+    if err := scanner.Err(); err != nil {
+        fmt.Printf("%s error: %v\n", prefix, err)
+    }
+}
 
 func PrintTable(data []models.PListData) {
     headers := []string{"SNo.", "PID", "P_NAME", "NAME", "CMD", "STATUS", "UP TIME", "CPU%", "MEM%"}

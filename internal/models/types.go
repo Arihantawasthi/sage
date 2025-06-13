@@ -1,9 +1,11 @@
 package models
 
 type Service struct {
-	Name    string   `json:"name"`
-	Command string   `json:"command"`
-	Args    []string `json:"args"`
+	Name       string            `json:"name"`
+	Command    string            `json:"command"`
+	Args       []string          `json:"args"`
+	WorkingDir string            `json:"workingDir"`
+	Env        map[string]string `json:"env,omitempty"`
 }
 
 type Services struct {

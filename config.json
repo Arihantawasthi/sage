@@ -3,12 +3,30 @@
         {
             "name": "dummy-server1",
             "command": "sleep",
-            "args": ["9999"]
+            "args": ["9999"],
+            "workingDir": ".",
+            "env": {}
         },
         {
             "name": "dummy-server2",
             "command": "tail",
-            "args": ["-f", "/var/log/system.log"]
+            "args": ["-f", "/var/log/system.log"],
+            "workingDir": ".",
+            "env": {}
+        },
+        {
+            "name": "gitbook-server",
+            "command": "go",
+            "args": ["run", "cmd/main.go"],
+            "workingDir": "/Users/cyberspace/Documents/projects/gitbook/",
+            "env": {
+                "DB_NAME": "gitbook",
+                "DB_USER": "daemon",
+                "DB_PASSWORD": "kickandtony",
+                "DB_HOST": "localhost",
+                "DB_PORT": "5432",
+                "REPO_DIR": "/Users/cyberspace/Documents/projects/gitbook-repos"
+            }
         }
     ]
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/Arihantawasthi/sage.git/internal/config"
 	"github.com/Arihantawasthi/sage.git/internal/logger"
+	"github.com/Arihantawasthi/sage.git/internal/manager"
 	"github.com/Arihantawasthi/sage.git/internal/models"
 	"github.com/Arihantawasthi/sage.git/internal/spmp"
 )
@@ -23,7 +24,8 @@ func main() {
 	}
     fmt.Println(logger, config)
 
-    spmpServer := spmp.NewSPMPServer(config, logger)
+    processStore := manager.NewProcessStore(config)
+    spmpServer := spmp.NewSPMPServer(config, logger, processStore)
     go func() {
         if err := spmpServer.Start(); err != nil {
             fmt.Fprintf(os.Stderr, "SPMP server failed: %v", err)

@@ -22,7 +22,9 @@ func main() {
         fmt.Fprintf(os.Stderr, "Service name requried.\nExample Usage: sagectl %s <service-name>\n", command)
         return
     }
-    serviceName = os.Args[2]
+    if command != "list" {
+        serviceName = os.Args[2]
+    }
 
     client := spmp.NewSPMPClient()
     packet, err := buildPacket(command, serviceName)
@@ -31,7 +33,7 @@ func main() {
         os.Exit(1)
     }
 
-    receivedPkt, err := client.SendAndPacket(packet)
+    receivedPkt, err := client.SendAndReceivePacket(packet)
     if err != nil {
         fmt.Fprintf(os.Stderr, "error while fetching info: %s", err)
         os.Exit(1)

@@ -51,6 +51,7 @@ func (ps *ProcessStore) StartProcess(serviceName string) string {
 
     go func() {
         err := cmd.Wait()
+        delete(ps.store, serviceName)
         if err != nil {
             fmt.Printf("process %s (PID %d) exited with error: %v\n", serviceName, pid, err)
         } else {
@@ -67,10 +68,11 @@ func (ps *ProcessStore) StopProcess(serviceName string) string {
     defer ps.mu.Unlock()
 	runningProcess, exists := ps.store[serviceName]
 	if !exists {
-		e := fmt.Errorf("service %s is not running\n", serviceName)
+		e := fmt.Errorf("Service %s is not running", serviceName)
 		return e.Error()
 	}
 	close(runningProcess.StopChan)
+    delete(ps.store, serviceName)
 
 	message := fmt.Sprintf("service '%s' stopped successfully", serviceName)
 	return message

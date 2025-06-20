@@ -44,8 +44,22 @@ func (ps *ProcessStore) StartProcess(serviceName string) string {
         return fmt.Sprintf("failed to get stderr pipe: %v", err)
     }
 
-    go utils.StreamLogs(stdout, fmt.Sprintf("[stdout][%s]", serviceName))
-    go utils.StreamLogs(stderr, fmt.Sprintf("[stderr][%s]", serviceName))
+    lDir, err := utils.CreateServiceLogDir()
+    serviceLogPath := fmt.Sprintf("%s/%s.log", lDir, serviceName)
+    if err != nil {
+        e := fmt.Errorf("error starting the process: %v\n" ,err)
+        return e.Error()
+    }
+    if _, err := os.Stat(serviceLogPath); err == nil {
+        _, err := os.Create(serviceLogPath)
+        if err != nil {
+            e := fmt.Errorf("error creating log file for %s", serviceName)
+            return e.Error()
+        }
+    }
+
+    go utils.StreamLogs(stdout, fmt.Sprintf("[stdout][%s]", serviceName), serviceLogPath)
+    go utils.StreamLogs(stderr, fmt.Sprintf("[stderr][%s]", serviceName), serviceLogPath)
 
 	err = cmd.Start()
 	if err != nil {
@@ -77,7 +91,8 @@ func (ps *ProcessStore) StartProcess(serviceName string) string {
 		}
 	}()
 
-	message := fmt.Sprintf("Service '%s' started successfully with PID %d", serviceName, pid)
+    time.Sleep(10 * time.Second)
+    message := fmt.Sprintf("Service '%s' started successfully with PID %d\n", serviceName, pid)
 	return message
 }
 

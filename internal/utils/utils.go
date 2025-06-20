@@ -4,16 +4,44 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 
 	"github.com/Arihantawasthi/sage.git/internal/models"
 )
 
-func StreamLogs(pipe io.ReadCloser, prefix string) {
-    scanner := bufio.NewScanner(pipe)
-    for scanner.Scan() {
-        fmt.Println(prefix, scanner.Text())
+func CreateServiceLogDir() (string, error) {
+    homeDir, err := os.UserHomeDir()
+    if err != nil {
+        return "", err
     }
+    sageDir := fmt.Sprintf("%s/.sage/logs", homeDir)
+
+    err = os.MkdirAll(sageDir, 0755)
+    if err != nil {
+        return "", err
+    }
+    return sageDir, nil
+}
+
+func StreamLogs(pipe io.ReadCloser, prefix, serviceLogPath string) {
+    scanner := bufio.NewScanner(pipe)
+    lFile, err := os.OpenFile(serviceLogPath, os.O_APPEND|os.O_CREATE, 0644)
+    if err != nil {
+        return
+    }
+    defer lFile.Close()
+    for scanner.Scan() {
+        line := scanner.Text()
+        logLine := fmt.Sprintf("%s %s\n", prefix, line)
+
+        if _, err := lFile.WriteString(logLine); err != nil {
+            fmt.Printf("Failed to write log for %s: %v\n", serviceLogPath, err)
+            return
+        }
+        // fmt.Println(prefix, scanner.Text())
+    }
+
     if err := scanner.Err(); err != nil {
         fmt.Printf("%s error: %v\n", prefix, err)
     }

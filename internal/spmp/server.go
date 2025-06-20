@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 
 	"github.com/Arihantawasthi/sage.git/internal/logger"
 	"github.com/Arihantawasthi/sage.git/internal/manager"
@@ -32,7 +33,17 @@ func NewSPMPServer(cfg models.Config, logger *logger.SlogLogger, processStore *m
 }
 
 func (s *SPMPServer) Start() error {
-	listener, err := net.Listen("unix", "/tmp/sage.sock")
+    socketPath := "/tmp/sage.sock"
+    if _, err := os.Stat(socketPath); err == nil {
+        err := os.Remove(socketPath)
+        if err != nil {
+            s.logger.Error("Failed to remove existing socket", "START", "os.Remove", "", "", "")
+            return err
+        }
+        s.logger.Info("Removed existing socket file", "START", "os.Remove", "", "", "")
+    }
+
+	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		s.logger.Error("Failed to start SPMP server", "START", "net.Listen", "", "", "")
 		return err
@@ -118,12 +129,12 @@ func (s *SPMPServer) handleStop(pkt *Packet) ([]byte, string, error) {
 func (s *SPMPServer) handleList(pkt *Packet) ([]byte, string, error) {
 	payload := string(pkt.Payload)
 	plistData := s.ps.ListProcesses(payload)
-    data := models.Response[[]models.PListData]{
-        RequestStatus: 1,
-        Msg: "Service list retrieved successfully",
-        Data: plistData,
-    }
-    response, err := json.Marshal(data)
+	data := models.Response[[]models.PListData]{
+		RequestStatus: 1,
+		Msg:           "Service list retrieved successfully",
+		Data:          plistData,
+	}
+	response, err := json.Marshal(data)
 	if err != nil {
 		e := fmt.Errorf("error in encoding json: %v", err)
 		return []byte(e.Error()), TEXTEncoding, nil

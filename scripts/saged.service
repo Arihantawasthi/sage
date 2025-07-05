@@ -3,9 +3,10 @@ Description=SAGE Daemon - Process Manager
 After=network.target
 
 [Service]
+WorkingDirectory=/home/ubuntu/projects/sage
 ExecStart=/usr/local/bin/saged
-WorkingDirectory=/var/run/saged
 Restart=always
+Environment=HOME=/home/ubuntu
 StandardOutput=file:/var/log/sage/saged.log
 StandardError=file:/var/log/sage/saged-error.log
 

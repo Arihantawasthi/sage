@@ -5,7 +5,7 @@ BINARY_CLI=sagectl
 INSTALL_DIR=/usr/local/bin
 SERVICE_FILE=saged.service
 UNIT_PATH=/etc/systemd/system
-RUNTIME_DIR=/var/run/saged
+RUNTIME_DIR=/home/ubuntu/projects/sage
 LOG_DIR=/var/log/sage
 
 .PHONY: all build install clean

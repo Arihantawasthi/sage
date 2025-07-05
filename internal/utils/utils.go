@@ -39,7 +39,6 @@ func StreamLogs(pipe io.ReadCloser, prefix, serviceLogPath string) {
             fmt.Printf("Failed to write log for %s: %v\n", serviceLogPath, err)
             return
         }
-        // fmt.Println(prefix, scanner.Text())
     }
 
     if err := scanner.Err(); err != nil {

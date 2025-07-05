@@ -9,16 +9,27 @@ import (
 )
 
 func LoadConfig() (models.Config, error) {
-	path := "./config.json"
-	b, err := os.ReadFile(path)
+    homeDir, err := os.UserHomeDir()
+    if err != nil {
+        return models.Config{}, fmt.Errorf("error locating home directory")
+    }
+
+    confFilePath := fmt.Sprintf("%s/.sage/sage-conf.json", homeDir)
+    _, err = os.Stat(confFilePath)
+    if err != nil {
+        os.OpenFile(confFilePath, os.O_CREATE, 0644)
+        return models.Config{}, nil
+    }
+
+	b, err := os.ReadFile(confFilePath)
 	if err != nil {
-		return models.Config{}, fmt.Errorf("error reading config file '%s': %w", path, err)
+		return models.Config{}, fmt.Errorf("error reading config file '%s': %w", confFilePath, err)
 	}
 
 	var services models.Services
 	err = json.Unmarshal(b, &services)
 	if err != nil {
-		return models.Config{}, fmt.Errorf("error unmarshalling config file '%s': %w", path, err)
+		return models.Config{}, fmt.Errorf("error unmarshalling config file '%s': %w", confFilePath, err)
 	}
 
     m := make(map[string]models.Service)

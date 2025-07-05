@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Arihantawasthi/sage.git/internal/config"
 	"github.com/Arihantawasthi/sage.git/internal/logger"
@@ -25,6 +28,10 @@ func main() {
 
     processStore := manager.NewProcessStore(config)
     spmpServer := spmp.NewSPMPServer(config, logger, processStore)
+
+    ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+    defer stop()
+
     go func() {
         if err := spmpServer.Start(); err != nil {
             fmt.Fprintf(os.Stderr, "SPMP server failed: %v", err)
@@ -32,5 +39,5 @@ func main() {
         }
     }()
 
-    select{}
+    <-ctx.Done()
 }

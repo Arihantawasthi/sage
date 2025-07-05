@@ -1,0 +1,13 @@
+[Unit]
+Description=SAGE Daemon - Process Manager
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/saged
+WorkingDirectory=/var/run/saged
+Restart=always
+StandardOutput=file:/var/log/sage/saged.log
+StandardError=file:/var/log/sage/saged-error.log
+
+[Install]
+WantedBy=multi-user.target

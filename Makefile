@@ -31,8 +31,8 @@ install: build
 	@sudo cp ./scripts/$(SERVICE_FILE) $(UNIT_PATH)/
 
 	@echo "> Reloading systemd daemon..."
-	@sudo sysmtectl daemon-reexec
-	@sudo sysmtectl daemon-reload
+	@sudo systemctl daemon-reexec
+	@sudo systemctl daemon-reload
 
 	@echo "> Done."
 

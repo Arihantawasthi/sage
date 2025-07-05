@@ -35,7 +35,7 @@ func main() {
 
     receivedPkt, err := client.SendAndReceivePacket(packet)
     if err != nil {
-        fmt.Fprintf(os.Stderr, "error while fetching info: %s", err)
+        fmt.Fprintf(os.Stderr, "error while fetching info: %s\n", err)
         os.Exit(1)
     }
 

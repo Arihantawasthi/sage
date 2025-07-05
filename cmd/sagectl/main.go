@@ -12,7 +12,7 @@ import (
 
 func main() {
     if len(os.Args) < 2 {
-        fmt.Fprintf(os.Stderr, "Usage: sagectl [list|status|start|stop] <service-name>")
+        fmt.Fprintf(os.Stderr, "Usage: sagectl [list|status|start|stop] <service-name>\n")
         return
     }
 

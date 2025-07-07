@@ -96,51 +96,27 @@ Each SPMP packet has the following structure:
 To use SAGE, you’ll need to build both the **daemon** and the **CLI tool (`sagectl`)**.
 ### 🛠️ Build the Daemon & CLI
 
-```bash
-go build -o sage ./cmd/sage
-go build -o sagectl ./cmd/sagectl
-```
-
-Place the binaries somewhere accessible in your `$PATH`, or use absolute paths in your systemd unit.
-
-### 🗃️ Optional: Install to `/usr/local/bin`
+### 🛠️ Build Everything
 
 ```bash
-sudo cp sage /usr/local/bin/
-sudo cp sagectl /usr/local/bin/
+make install
 ```
-
-# 🔧 Setting up systemd service for the daemon
-#### Create a unit file at /etc/systemd/system/sage.service
-```sudo tee /etc/systemd/system/sage.service > /dev/null <<EOF
-[Unit]
-Description=SAGE Daemon
-After=network.target
-
-[Service]
-ExecStart=/usr/local/bin/sage
-Restart=on-failure
-User=root
-
-[Install]
-WantedBy=multi-user.target
-```
-
-#### Reload systemd to pick up the new unit
-```bash
-sudo systemctl daemon-reexec
-sudo systemctl daemon-reload
-```
+This command:
+- Builds both `saged` and `sagectl`
+- Copies binaries to `/usr/local/bin`
+- Installs `saged.service` to `/etc/systemd/system`
+- Creates runtime and log directories
+- Reloads the `systemd` daemon
 
 #### Enable and start the service
 ```bash
-sudo systemctl enable sage
-sudo systemctl start sage
+sudo systemctl enable saged
+sudo systemctl start saged
 ```
 
 #### Check status
 ```bash
-systemctl status sage
+systemctl status saged
 ```
 
 ---
@@ -150,7 +126,7 @@ systemctl status sage
 You can start the daemon using `systemd`.
 
 ```bash
-systemctl start sage
+systemctl start saged
 ```
 
 ---
